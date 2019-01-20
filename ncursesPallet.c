@@ -25,10 +25,9 @@
 
 
 /* *** DEFINES AND LOCAL DATA TYPE DEFINATION ****************************************** */
-#define MIN_COLS			(80)
-#define DEFAULT_SCREEN	(1)
+#define MIN_COLS		(80)
+#define DEFAULT_SCREEN		(1)
 #define USER_SCREEN		(2)
-
 
 
 /* *** LOCAL PROTOTYPES (if applicable) ************************************************ */
