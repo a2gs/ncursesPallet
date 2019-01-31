@@ -1,0 +1,210 @@
+@ C/C++ Jul 10 2003 - 11:53 GMT 
+2G writes: This requires quite a bit of knowledge in the c programming language and will ony explain curses so don't read this if you are new to programming. This tutorial only concerns Linux programming so you need to have some basic knowledge of Linux systems and so on. This is only the first part of the curses article series because it was way to much information to cover in one article and in one evening so stay tuned for the other parts comming soon on this site. Well, lets get started. 
+
+I guess you could say curses puts you halfway between simple line based programs and the fully graphical x window programs. With curses you get more control over your output and input, for example if you have ever used programs like cfdisk or BitchX that place text all over the screen then you have seen what you can do with curses. In this tutorial we will be using the curses library, Linux does have the svgalib but it's not Unix standard. The curses library gives you an easy way to write full screen, albeit character based, programs and gives you a way that is easier then to use escape sequences directly. We will also learn how to use curses to manage the keyboard. Some version of Unix wont support certain functions of the curses library so if you expiriance problems i suggest you get the ncurses library. 
+
+The tutorial will contain some code examples and you can use them in any way you want, i don't care. The code examples have been tested on RedHat 9.0(2.4.20) and Linux 2.4.18. 
+
+What are curses? 
+Curses are routines that work on the screen, the screen usually being the entire screen area unless you are working in a terminal window inside a x window, in that case the curses are working on the entire terminal window. Curses can create several windows in one terminal(like BitchX)with different functions in each and they can create sub windows and a kind of pop up window. Curses occupie the full space of the terminal where it's executed, meaning if you start a program using curses in a shell without a x window around it, the program would take up all the space, same as for starting it in a temrinal inside a x window, then it would take up all the space in that terminal window. A good example is BitchX and the text editor Vi, these programs take up all the space of a window when started and BitchX can create more then one window inside one terminal window. 
+
+Curses maintain a map of the screen using the data structures stdscr and curscr. The first one, stdscr, acts much like stdout checking for output on the screen and is updated whenever a curses function produces an output on the screen. Output never appears on the screen in curses functions until you use the refresh call in the program. Curses then look for how the standard screen(stdscr) should look like and what the current screen(curscr) looks like and uses the differences to update the screen. 
+So the process to produce output would be. 
+Use curses to update the logical screen 
+Update the physical screen with refresh 
+
+Using this two way approach makes a difference if you ever decide to run your program over a serial or modem uplink. 
+Curses first write the logical screen with the boxes and moving the curser around and then it uses refresh to output it all to the physical screen, in that way you don't have to see the changes all at once and it improves speed. 
+
+Now for the rest of the article being in a shell without x running would be nice but i will just assume you are in one or are using one temrinal and don't focus on anything around it, all we have is one terminal window now. 
+The logical screen is just lines and columns forming small squares that each can contain a character. The screen position in the top left corner is 0,0 which is important to remember since that is your starting point for moving text around the screen. The curses functions can move around the screen using the y and x coordinates, it first defines the lines(which is the y value) and then the columns(the x value) and then you can add different attributes like bold and underlined all depending on your temrinal capabilities, most should be able to handle the basics like bold and underlined and some might even handle colors. 
+
+Compiling 
+When you compile the code in this article i would recomend using gcc. Since curses is a library you first need to include the curses.h file in your code(which i have taken the liberty of doing for this tutorial)and you need to link to the curses library with the -l option which specifys the directory the curses file is located in. 
+So a compile of a curses program would look something like this. 
+
+$ gcc program_file.c -o program_file -lcurses 
+If you wanna compile linking to the curses library. 
+$ gcc program_file.c -o program_file -lncurses 
+If your compile setup is not using ncurses then you have to force it with this line. 
+
+Most distors of Linux should not give you any problems with this but if you do have problems then feel free to come crying to me. If in doubt refer to man ncurses. 
+
+Hello Curses 
+Now we will try writing a small hello world program to show different function calls. 
+Here we first have to initialize the library before use with the initscr call and when we are finished with the curses library we need to restore settings with the endwin call. 
+
+
+#include 
+#include 
+#include 
+
+int main() { 
+initscr(); 
+
+move(10, 20); 
+printw("%s", "Hello Curses"); 
+refresh(); 
+
+sleep(4); 
+
+endwin(); 
+exit(EXIT_SUCCESS); 
+} 
+
+
+Here we have used move to place the cursor at line 10 and column 20, we then print the text onto the logical screen and then use refresh to get it out on the physical screen. The we use sleep to make the program halt for 4 seconds so you have time to see the output. 
+You only call initscr once in every program and when you do call it initscr returns a pointer to stdscr and an error message if it fails. 
+Using endwin you can resume curses operations after you left them with the help of clearok(stdscr, 1) and refresh making curses forget what the physical screen looked like and do it all over again. 
+Curses uses the WINDOW structure to store the intended screen display. 
+
+Output to the screen 
+Here are some basic ways of updating the screen. 
+
+
+#include 
+
+int addch(const chtype char_to_add); 
+int addchstr(chtype *const string_to_add); 
+int printw(char *format, ...); 
+int refresh(void); 
+int box(WINDOW *win_ptr, chtype vertical_char, chtype horizontal_char); 
+int insch(chtype char_to_insert); 
+int insertln(void); 
+int delch(void); 
+int deleteln(void); 
+int beep(void); 
+int flash(void); 
+
+
+In curses you have your own function that defines character type, it's called chtype as you can see above, and it allows more bits then the standard char. Ncurses for Linux actually never defines size so it's an unsigned long. 
+You can add a location specified character or string using the add function and with the box function you can draw a box around windows. The printw function works just like the printf function. If you wanna insert a character somewhere and from this move other characters to the right you use insch, but it's not certain what will happen when the characters reach the end of the line, it kinda depends on the terminal your using but i think most new terminals will just give it a new line. Inserting a blank new line and moving other lines down is done with insln. The delete functions are the same as the ins functions but deleting chars instead. The beep function will of course use the system speaker to create a beep sound from your computer and if your temrinal does not support this it will flash the screen, and with the flash you can of course flash the screen or make a sound if the temrinal does not support the flash. ;) 
+
+Input from the screen 
+The following functions are used to read characters from the screen. 
+
+
+#include 
+
+chtype inch(void); 
+int instr(char *string); 
+int innstr(char *string, int number_of_chars); 
+
+
+The inch function returns a character and it's attribute info from the current screen location of the cursor and should always be available unlike the instr and innstr functions that write to arrays of chars while inch returns a chtype.
+
+Clearing a screen 
+Here are ways of clearing a screen. 
+
+
+#include 
+
+int erase(void); 
+int clear(void); 
+int clrtobot(void); 
+int clrtoeol(void); 
+
+
+Using the erase function you can write blank spaces to each location of the screen defined. The clear function is really a sure bet to clear the entire screen and combined with the refresh function is a good way to redraw a screen. The function clrtobot simply clears the screen from the current cursor location to the bottom and clrtoeol erases everything from the cursor to the end of the line the cursor is on. 
+
+Moving the cursor around 
+For this you have one function that controls where to put the cursor and one that decides where it should be after refresh. 
+
+
+#include 
+
+int move(int y_position, int x_position); 
+int leaveok(WINDOW *window_ptr, bool leave_flag); 
+
+
+With the move function you simply move the cursor on the logical screen to a position defined by the y and x position. The cursor is only moved on the logical screen until you use refresh so if you wanna see the cursor being move you would have to use refresh. The leaveok function is used to determine a position for the cursor to be left in after the refresh call is used, for example if the cursor is moved to (5, 10) and then we set the leaveok function to true and and set where to move it we can make it end up in (20, 5) after refresh has been used, if the leaveok function is left on false then the cursor will just be in the position you last left it in. 
+
+Character attributes 
+Assuming your hardware supports it using curses allows your characters to have special attributes like bold, underlined and so on. These attributes are A_BLINK, A_BOLD, A_DIM, A_REVERSE, A_STANDOUT and A_UNDERLINE. 
+Here are the functions to set attributes singly or collectivly. 
+
+
+#include 
+
+int attron(chtype attribute); 
+int attroff(chtype attribute); 
+int attrset(chtype attribute); 
+int standout(void); 
+int standend(void); 
+
+
+The attrset function sets the attributes and the attron and attroff set them on and off of course, without interfering with any other active attributes. The standout and standend functions are more generic. 
+
+Well it's finally time to put all your new skills about curses into use. 
+This code is an example of moving and adding data. 
+First we include some header files that are required, define some characters and a pointer to those arrays. Then we initialize the curses structure. Note how we turn flagging of text attributes on and off. 
+This program might remind you of the welcome screen in Vi and thats exactly the kind of programs you can do using curses. 
+
+
+#include 
+#include 
+#include 
+
+int main() 
+{ 
+const char side_text1[] = "This is the text to the left"; 
+const char side_text2[] = "This text is also to the left"; 
+const char *scan_ptr; 
+
+initscr(); 
+
+move(5, 15); 
+attron(A_BOLD); 
+printw("%s", "This text is bold"); 
+attroff(A_BOLD); 
+refresh(); 
+sleep(1); 
+
+move(8, 15); 
+attron(A_DIM); 
+printw("%s", "This text is dim"); 
+attroff(A_DIM); 
+refresh(); 
+sleep(1); 
+
+move(10, 10); 
+printw("%s", "This text demonstrates how it with the text..."); 
+move(11, 23); 
+printw("%s", "below it can form a real story or description of..."); 
+move(12, 23); 
+printw("%s", "the text to the left."); 
+move(14, 10); 
+printw("%s", "Here is some more possible descriptions"); 
+move(15, 10); 
+printw("%s", "and some more hehe"); 
+refresh(); 
+sleep(1); 
+
+attron(A_DIM); 
+scan_ptr = side_text1 + strlen(side_text1); 
+while(scan_ptr != side_text1) { 
+move(10, 10); 
+insch(*scan_ptr--); 
+} 
+
+scan_ptr = side_text2 + strlen(side_text2); 
+while(scan_ptr != side_text2) { 
+move(13, 10); 
+
+insch(*scan_ptr--); 
+} 
+attroff(A_DIM); 
+
+refresh(); 
+sleep(1); 
+
+endwin(); 
+exit(EXIT_SUCCESS); 
+} 
+
+
+shoutz to ruby, greg, tek, The_mystiC, Dark_Reaver, Subliminal, Sniper, fluxm, amb and lots more you all know who you are you FREAKS 
+
+http://mochila.suidzer0.org/sna 
+
+

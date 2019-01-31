@@ -1,0 +1,238 @@
+@ C/C++ Jul 10 2003 - 11:54 GMT 
+2G writes: After a long wait i'm back with the second part of the curses tutorial. I'm sorry it took so damn long but i was involve din other projects 
+and with this site and lots of other crap that took up all my time, but now i'm back. I'm not sure if i will finish this curses series like i 
+first planned because i'm done with learning curses and to be honest it's boring now but of course others must learn so i'll finish this part 
+and i guess you will just have to buy a damn book if you wanna learn more. In this part i will cover how curses can control the 
+keyboard and i'll go through making fun windows with you all. 
+
+Yes like i said curses is not only for controling the screen in a great way but also for controling the keyboard and in this first part of the 
+second curses tutorial i'll cover keyboard modes. 
+Don't forget the curses.h include on all these code examples and if you need any other special inclucdes i will specify them. 
+
+We have echo() and noecho() to simply turn echoing on and off and thats very usefull for programs where a passwords needs to be typed. If you 
+don't want output to be visible to the screen until enter is pressed then you use cbreak() and nocbreak() is of course the opposite, output is 
+visible "live" for each keypress. With raw() your turn off processing of special characters so everything is simply output to the screen and 
+can prevent someone from creating signals or flow control. 
+
+Those were the keyboard modes, the way curses process the input characters, now it's time to control how characters are inout with keyboard 
+input functions. The keyboard input modes act very much like scanf, gets and getchar and if your reading this tutorial you should know those. 
+I would just like to point out that using getnstr instead of getstr is something you should get used of as this is more secure when getnstr 
+allows you to control the number of chars input and getstr does not. 
+Time for a small example where we will ask for a password and prevent the password from being output to the screen with noecho and then verify 
+it. 
+
+
+#include 
+#include 
+#include 
+#include 
+
+#define PASS_LEN 25 /* these numbers can also be defined directly */ 
+#define NAME_LEN 256 /* in char name[xx] or char password but this */ 
+/* way we have more control of what is what */ 
+int main() { 
+char name[NAME_LEN]; 
+char password[PASS_LEN]; 
+char *corr_password = "letmein"; 
+int i = 0; 
+
+initscr(); 
+
+move(5, 10); 
+printw("Login below."); 
+refresh(); 
+sleep(2); 
+
+move(8, 13); 
+printw("Username: "); 
+getstr(name); 
+
+move(10, 13); 
+printw("Password: "); 
+refresh(); 
+
+cbreak(); 
+noecho(); 
+
+memset(password, '\0', sizeof(password)); 
+while(i < PASS_LEN) { 
+password[i] = getch(); 
+move(10, 23 + i); 
+addch('*'); 
+refresh(); 
+if(password[i] == '\n') break; 
+if(strcmp(password, corr_password) == 0) break; 
+i++; 
+} 
+
+echo(); 
+nocbreak(); 
+
+move(12, 13); 
+sleep(1); 
+if(strcmp(password, corr_password) == 0) printw("%s", "Correct Password!"); 
+else { 
+printw("%s", "Wrong Password"); 
+beep(); 
+} 
+refresh(); 
+sleep(3); 
+
+endwin(); 
+exit(EXIT_SUCCESS); 
+} 
+
+
+We simply make some place in the memory for a password after we stopped echoing so that nobody is looking over your shoulder to see your 
+secret password ;P and then we simply compare the two and output success or error message. Again i stress that you get the latest version of 
+the curses library because thats what i used to write all the examples. 
+
+Windows 
+Up until now we have worked with the screen as one window but it's time to get into multiple windows in one screen. Creating and deleting 
+windows is made easy with newwin and delwin and here are the functions with options. 
+
+
+WINDOW *newwin(int number_of_lines, int number_of_columns, int y_start_pos, int x_start_pos); 
+int delwin(WINDOW *window_to_delete); 
+
+
+The newwin function kinda explains itself but anyways, you define how many lines and columns the window should be in size and then of 
+course you have to define where on the screen it should start drawing the window and delwin is even easier where you just tell it what 
+window to delete and it's gone after a refresh. 
+
+Now to move around in the windows and write to it we use a w prefix that we can add to printw, addch and many other functions to make 
+them work in a window. The w prefix adds another pointer and combinging that with mv making it mvw would mean that the mv prefix is added 
+with two additional parameters that define where in the window not the screen the pointer is moved with y and x 0,0 again being the top 
+left corner of the window but not the screen. Here are a few examples of combining prefix's and functions and these are not the only ones 
+that have available variants of window and mv but just some examples. 
+
+
+int mvaddch(int y, int x, const chtype char); 
+int waddch(WINDOW *window_pointer, const chtype char); 
+int mvwaddch(WINDOW *window_pointer, int y, int x, const chtype char); 
+
+
+And this can also be applied to many other functions such as printw, inch and so forth. 
+
+Here now i'll show and explain some functions that allow us to move and redraw entire windows. First are some examples. 
+
+
+int mvwin(WINDOW *window_to_move, int new_y, int new_x); 
+int wrefresh(WINDOW *window_ptr); 
+int wclear(WINDOW *window_ptr); 
+int werase(WINDOW *window_ptr); 
+int touchwin(WINDOW *window_ptr); 
+inr scrollok(WINDOW *window_ptr, bool scroll_flag); 
+int scroll(WINDOW *window_ptr); 
+
+
+Most of these are obvious but here goes anyways. You move a window with mvwin but make sure you move in it within the screen so that no 
+part of it is outside because then it will fail. The wrefresh, wclear and werase functions are just like the non-curses functions i 
+talked about in the first part but are confined to one window instead of stdscr. Using the touchwin function you can inform curses that a 
+specific window has had it's contents changed and curses will now redraw that window next time wrefresh is called even if you haven't 
+changed the content, very useful when you have several windows stacked on the screen and you want to display one specific one. With the 
+scroll function you simply scroll a window one line up and when the scrollok passes a boolean true number it scrolls the window, if 
+available wsctl will allow you to define a number of lines to scroll but this is not always available in curses. 
+
+Now lets put your new skills to the test and write an example that will fill the background with chars while creating a window and later 
+pop up another window as a fine example of what you can do with curses. You might wanna lower sleep time in some places(or remove it 
+completly) to make it run smoothly but i'll leave it this way so you can see exactly what happens. 
+
+#include 
+#include 
+#include 
+
+int main() 
+{ 
+WINDOW *window1; 
+WINDOW *window2; 
+int x_loop; 
+int y_loop; 
+char a_letter = 'a'; 
+
+initscr(); 
+
+move(5,5); 
+printw("%s", "Multiple windows!"); 
+sleep(1); 
+refresh(); 
+/* filling the screen with chars so that we can see the first window */ 
+for(y_loop = 0; y_loop < LINES - 1; y_loop++) { 
+for(x_loop = 0; x_loop < COLS - 1; x_loop++); { 
+mvwaddch(stdscr, y_loop, x_loop, a_letter); 
+a_letter++; 
+if(a_letter > z) a_letter = 'a'; 
+} 
+} 
+
+refresh(); 
+sleep(3); 
+
+window1 = newwin(10,20,5,5); 
+mvwprintw(window1, 2, 2, "%s", "Hey There!"); 
+mvwprintw(window1, 5, 2, "%s", "It's very easy to use once you get used to it"); 
+
+/* see how simple it is now that you see the code */ 
+/* simple define that your working with window1 */ 
+/* all the time and some prefixes on the functions*/ 
+
+wrefresh(window1); 
+refresh() 
+sleep(3); 
+
+a_letter = '0'; 
+for(y_loop = 0; y_loop < LINES - 1; y_loop++) { 
+for(x_loop = 0; x_loop < COLS - 1; x_loop++) { 
+mvwaddch(stdscr, y_loop, x_loop, a_letter); 
+a_letter+++; 
+if(a_letter > '9') a_letter = '0'; 
+} 
+} 
+
+refresh(); 
+sleep(3); 
+
+wrefresh(window1); 
+sleep(3); 
+touchwin(window1); 
+wrefresh(window1); 
+sleep(2); 
+
+window2 = newwin(10,20,8,8); 
+box(window2, '#', '#'); 
+mvwprintw(window2, 4, 2, "%s", "This is the pop up"); 
+wrefresh(window2); 
+sleep(3); 
+
+touchwin(window1); 
+wrefresh(window1);
+sleep(3); 
+/* ok we've had out fun time to delete everything */ 
+wclear(window1); 
+wrefresh(window1); 
+sleep(1); 
+
+delwin(window1); 
+beep(); /* lol just for effect ;) */ 
+touchwin(window2); 
+wrefresh(window2); 
+sleep(3); 
+
+delwin(window2); 
+touchwin(stdscr); /* you see that i'm using stdscr and yes this is possible but be careful */ 
+refresh(); 
+sleep(2); 
+endwin(); 
+exit(EXIT_SUCCESS); 
+} 
+
+
+It can get hard sometimes with all the pointers and arrays but you will all find individual ways to solve that but be careful when 
+refreshing, you need to do it in the right order. I would like to go on with more on refreshing and subwindows but it's 4:39 in the 
+morning so i'll update the tutorial later, maybe tomorrow(today). There wont be no more parts after this one even though i could bring up 
+colors, key pad and so forth. I might do a 3rd part but i strongly advise you go out and get a book on c. 
+
+Greetz out to fluxm and subliminal cuz they are the only ones helping me online at the moment. 
+
+http://mochila.suidzer0.org/sna 
+
