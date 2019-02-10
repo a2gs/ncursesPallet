@@ -1,5 +1,9 @@
+CC = gcc
+CFLAGS = -g -Wall -std=c11 -D_XOPEN_SOURCE=700
+RM = rm -f
+
 all: clean
-	gcc -o ncursesPallet ncursesPallet.c -lncurses -Wall -std=c11
+	$(CC) -o ncursesPallet ncursesPallet.c -lncurses $(CFLAGS)
 
 clean:
-	-rm ncursesPallet
+	-$(RM) ncursesPallet
