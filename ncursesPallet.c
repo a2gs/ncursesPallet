@@ -3,7 +3,7 @@
  *
  * A sample of NCurses colors and attributes.
  *
- * Public Domain
+ * MIT License
  *
  */
 
